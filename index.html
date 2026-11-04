@@ -16,7 +16,7 @@ let mix,acts=[],cur=null;const clk=new THREE.Clock();window.jog={t:0,loaded:fals
 const msg=document.getElementById('msg');
 function loadVer(v){window.jog.loaded=false;window.jog.ver=v;msg.textContent='Loading '+v+'…';
  if(cur){s.remove(cur);cur.traverse(o=>{if(o.isMesh){o.geometry.dispose()}});cur=null;mix=null;acts=[]}
- L.load('jog_'+v+'.glb',gl=>{if(window.jog.ver!==v)return;gl.scene.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false}});cur=gl.scene;s.add(cur);mix=new THREE.AnimationMixer(cur);
+ L.load('jog_'+v+'.glb',gl=>{if(window.jog.ver!==v)return;gl.scene.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false}});cur=gl.scene;s.add(cur);window.jog.scene=cur;mix=new THREE.AnimationMixer(cur);
   acts=gl.animations.map(c=>{const a=mix.clipAction(c);a.setLoop(THREE.LoopRepeat);a.play();return a});
   window.jog.morph=gl.animations.some(c=>c.tracks.some(t=>t.name.includes('morphTargetInfluences')));
   msg.textContent=v+' · drag to orbit · scroll/pinch to zoom';window.jog.loaded=true},
