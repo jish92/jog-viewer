@@ -2,7 +2,7 @@
 <title>Jog Viewer</title>
 <style>html,body{margin:0;height:100%;background:#c9ccd1;font-family:system-ui;overflow:hidden}#ui{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#fffc;padding:8px 14px;border-radius:12px;display:flex;gap:12px;align-items:center}#msg{position:fixed;top:12px;left:12px;color:#333}button{font-size:16px;padding:6px 12px}</style>
 <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.169.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.169.0/examples/jsm/"}}</script></head>
-<body><div id="msg">Loading…</div><div id="ui"><button id="pp">Pause</button><label>Speed <input id="sp" type="range" min="0" max="2" step="0.05" value="1"></label><span id="sv">1.00×</span></div>
+<body><div id="msg">Loading…</div><div id="ui"><button id="pp">Pause</button><label>Speed <input id="sp" type="range" min="0" max="1.5" step="0.05" value="0.65"></label><span id="sv">0.65×</span><button id="rt">1×</button><button id="sm">Slow-mo</button></div>
 <script type="module">
 import * as THREE from 'three';import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';import {DRACOLoader} from 'three/addons/loaders/DRACOLoader.js';import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 const r=new THREE.WebGLRenderer({antialias:true});r.setPixelRatio(Math.min(devicePixelRatio,2));r.setSize(innerWidth,innerHeight);r.shadowMap.enabled=true;r.shadowMap.type=THREE.PCFSoftShadowMap;r.outputColorSpace=THREE.SRGBColorSpace;r.toneMapping=THREE.ACESFilmicToneMapping;document.body.appendChild(r.domElement);
@@ -15,7 +15,7 @@ const L=new GLTFLoader();const D=new DRACOLoader();D.setDecoderPath('https://unp
 let mix,act;const clk=new THREE.Clock();window.jog={t:0,loaded:false};
 L.load('jog.glb',gl=>{gl.scene.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false}});s.add(gl.scene);mix=new THREE.AnimationMixer(gl.scene);act=mix.clipAction(gl.animations[0]);act.setLoop(THREE.LoopRepeat);act.play();document.getElementById('msg').textContent='Drag to orbit · scroll/pinch to zoom';window.jog.loaded=true},e=>{if(e.total)document.getElementById('msg').textContent='Loading… '+Math.round(100*e.loaded/e.total)+'%'},e=>{document.getElementById('msg').textContent='Load error: '+e});
 const pp=document.getElementById('pp'),sp=document.getElementById('sp'),sv=document.getElementById('sv');let paused=false;
-pp.onclick=()=>{paused=!paused;pp.textContent=paused?'Play':'Pause'};sp.oninput=()=>{sv.textContent=(+sp.value).toFixed(2)+'×'};
+document.getElementById("rt").onclick=()=>{sp.value=1;sp.oninput()};document.getElementById("sm").onclick=()=>{sp.value=0.65;sp.oninput()};pp.onclick=()=>{paused=!paused;pp.textContent=paused?'Play':'Pause'};sp.oninput=()=>{sv.textContent=(+sp.value).toFixed(2)+'×'};
 addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();r.setSize(innerWidth,innerHeight)});
 r.setAnimationLoop(()=>{const dt=clk.getDelta();if(mix&&!paused){mix.update(dt*sp.value);window.jog.t=act.time}oc.update();r.render(s,cam)});
 </script></body></html>
