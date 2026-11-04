@@ -2,7 +2,7 @@
 <title>Jog Viewer</title>
 <style>html,body{margin:0;height:100%;background:#c9ccd1;font-family:system-ui;overflow:hidden}#ui{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#fffc;padding:8px 14px;border-radius:12px;display:flex;gap:12px;align-items:center}#msg{position:fixed;top:12px;left:12px;color:#333}button{font-size:16px;padding:6px 12px}</style>
 <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.169.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.169.0/examples/jsm/"}}</script></head>
-<body><div id="msg">Loading…</div><div id="ui"><button id="pp">Pause</button><label>Speed <input id="sp" type="range" min="0.5" max="1" step="0.05" value="0.65"></label><span id="sv">0.65×</span><button id="rt">1×</button><button id="sm">Slow-mo</button></div>
+<body><div id="msg">Loading…</div><div id="ui"><select id="ver"><option value="v6" selected>v6 – arm contact physics</option><option value="v5">v5 – visible bounce</option><option value="v4">v4 – first jog</option></select><button id="pp">Pause</button><label>Speed <input id="sp" type="range" min="0.5" max="1" step="0.05" value="0.65"></label><span id="sv">0.65×</span><button id="rt">1×</button><button id="sm">Slow-mo</button></div>
 <script type="module">
 import * as THREE from 'three';import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';import {DRACOLoader} from 'three/addons/loaders/DRACOLoader.js';import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 const r=new THREE.WebGLRenderer({antialias:true});r.setPixelRatio(Math.min(devicePixelRatio,2));r.setSize(innerWidth,innerHeight);r.shadowMap.enabled=true;r.shadowMap.type=THREE.PCFSoftShadowMap;r.outputColorSpace=THREE.SRGBColorSpace;r.toneMapping=THREE.ACESFilmicToneMapping;document.body.appendChild(r.domElement);
@@ -12,10 +12,18 @@ const oc=new OrbitControls(cam,r.domElement);oc.target.set(0,0.95,0);oc.enableDa
 s.add(new THREE.HemisphereLight(0xffffff,0x8d8a85,1.6));const d=new THREE.DirectionalLight(0xffffff,1.8);d.position.set(3,6,4);d.castShadow=true;d.shadow.mapSize.set(2048,2048);d.shadow.radius=6;Object.assign(d.shadow.camera,{left:-2,right:2,top:3,bottom:-1});s.add(d);
 const g=new THREE.Mesh(new THREE.CircleGeometry(12,64),new THREE.MeshStandardMaterial({color:0xb8bbbf,roughness:1}));g.rotation.x=-Math.PI/2;g.receiveShadow=true;s.add(g);
 const L=new GLTFLoader();const D=new DRACOLoader();D.setDecoderPath('https://unpkg.com/three@0.169.0/examples/jsm/libs/draco/');L.setDRACOLoader(D);
-let mix,act;const clk=new THREE.Clock();window.jog={t:0,loaded:false};
-L.load('jog.glb',gl=>{gl.scene.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false}});s.add(gl.scene);mix=new THREE.AnimationMixer(gl.scene);act=mix.clipAction(gl.animations[0]);act.setLoop(THREE.LoopRepeat);act.play();document.getElementById('msg').textContent='Drag to orbit · scroll/pinch to zoom';window.jog.loaded=true},e=>{if(e.total)document.getElementById('msg').textContent='Loading… '+Math.round(100*e.loaded/e.total)+'%'},e=>{document.getElementById('msg').textContent='Load error: '+e});
+let mix,acts=[],cur=null;const clk=new THREE.Clock();window.jog={t:0,loaded:false,ver:null};
+const msg=document.getElementById('msg');
+function loadVer(v){window.jog.loaded=false;window.jog.ver=v;msg.textContent='Loading '+v+'…';
+ if(cur){s.remove(cur);cur.traverse(o=>{if(o.isMesh){o.geometry.dispose()}});cur=null;mix=null;acts=[]}
+ L.load('jog_'+v+'.glb',gl=>{if(window.jog.ver!==v)return;gl.scene.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false}});cur=gl.scene;s.add(cur);mix=new THREE.AnimationMixer(cur);
+  acts=gl.animations.map(c=>{const a=mix.clipAction(c);a.setLoop(THREE.LoopRepeat);a.play();return a});
+  window.jog.morph=gl.animations.some(c=>c.tracks.some(t=>t.name.includes('morphTargetInfluences')));
+  msg.textContent=v+' · drag to orbit · scroll/pinch to zoom';window.jog.loaded=true},
+  e=>{if(e.total)msg.textContent='Loading '+v+'… '+Math.round(100*e.loaded/e.total)+'%'},e=>{msg.textContent='Load error: '+e})}
+const vs=document.getElementById('ver');vs.onchange=()=>loadVer(vs.value);loadVer(vs.value);
 const pp=document.getElementById('pp'),sp=document.getElementById('sp'),sv=document.getElementById('sv');let paused=false;
 document.getElementById("rt").onclick=()=>{sp.value=1;sp.oninput()};document.getElementById("sm").onclick=()=>{sp.value=0.65;sp.oninput()};pp.onclick=()=>{paused=!paused;pp.textContent=paused?'Play':'Pause'};sp.oninput=()=>{sv.textContent=(+sp.value).toFixed(2)+'×'};
 addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();r.setSize(innerWidth,innerHeight)});
-r.setAnimationLoop(()=>{const dt=clk.getDelta();if(mix&&!paused){mix.update(dt*sp.value);window.jog.t=act.time}oc.update();r.render(s,cam)});
+r.setAnimationLoop(()=>{const dt=clk.getDelta();if(mix&&!paused){mix.update(dt*sp.value);window.jog.t=acts.length?acts[0].time:0}oc.update();r.render(s,cam)});
 </script></body></html>
